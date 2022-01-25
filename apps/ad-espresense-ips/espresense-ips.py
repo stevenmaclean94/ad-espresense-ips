@@ -26,7 +26,7 @@ class ESPresenseIps(mqtt.Mqtt):
         for room, pos in self.args["rooms"].items():
             t = f"{self.args.get('rooms_topic', 'espresense/rooms')}/{room}"
             self.log(f"Subscribing to topic {t}")
-            #self.mqtt_unsubscribe(t)
+            self.mqtt_unsubscribe(t)
             self.mqtt_subscribe(t)
             self.listen_event(self.mqtt_message, "MQTT_MESSAGE", topic=t)
 
@@ -70,6 +70,7 @@ class ESPresenseIps(mqtt.Mqtt):
                 #self.call_service("device_tracker/see", dev_id = id + "_see", gps = [self.config["latitude"]+(pos[1]/111111), self.config["longitude"]+(pos[0]/111111)], location_name="home")
                 #self.log(f"{room} {id}: {pos}")
                 roomname = room_solve(self,round(pos[0],2,),round(pos[1],2))
+                self.mqtt_publish(f"{self.args.get('room_topic', 'espresense/ips/rooms')}/{roomname}", json.dumps({"id":id, "distance": np.sqrt(pos[0]**2+pos[1]**2+pos[2]**2), "x":round(pos[0],2),"y":round(pos[1],2),"z":round(pos[2],2), "fixes":len(distance_to_stations),"measures":device["measures"]}))
                 self.mqtt_publish(f"{self.args.get('ips_topic', 'espresense/ips')}/{id}", json.dumps({"name":name, "x":round(pos[0],2),"y":round(pos[1],2),"z":round(pos[2],2), "fixes":len(distance_to_stations),"measures":device["measures"],"currentroom":roomname}))
                 self.mqtt_publish(f"{self.args.get('location_topic', 'espresense/location')}/{id}", json.dumps({"name":name, "longitude":(self.config["longitude"]+(pos[0]/111111)),"latitude":(self.config["latitude"]+(pos[1]/111111)),"elevation":(self.config.get("elevation","0")+pos[2]), "fixes":len(distance_to_stations),"measures":device["measures"]}))
 
