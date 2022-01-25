@@ -11,23 +11,24 @@ https://docs.scipy.org/doc/scipy/reference/optimize.minimize-neldermead.html#opt
 
 """
 
-import appdaemon.plugins.hass.hassapi as hass
+import mqttapi as mqtt
 from scipy.optimize import minimize
 import numpy as np
 import json
 
-class ESPresenseIps(hass.Hass):
+class ESPresenseIps(mqtt.Mqtt):
     def initialize(self):
+        self.set_namespace("mqtt")
         self.devices = {}
         for device in self.args["devices"]:
           self.devices.setdefault(device["id"],{})["name"]=device["name"]
-        self.mqtt = self.get_plugin_api("MQTT")
+        
         for room, pos in self.args["rooms"].items():
             t = f"{self.args.get('rooms_topic', 'espresense/rooms')}/{room}"
             self.log(f"Subscribing to topic {t}")
-            self.mqtt.mqtt_unsubscribe(t)
-            self.mqtt.mqtt_subscribe(t)
-            self.mqtt.listen_event(self.mqtt_message, "MQTT_MESSAGE", topic=t)
+            #self.mqtt_unsubscribe(t)
+            self.mqtt_subscribe(t)
+            self.listen_event(self.mqtt_message, "MQTT_MESSAGE", topic=t)
 
     def mqtt_message(self, event_name, data, *args, **kwargs):
         """Process a message sent on the MQTT Topic."""
@@ -69,8 +70,8 @@ class ESPresenseIps(hass.Hass):
                 #self.call_service("device_tracker/see", dev_id = id + "_see", gps = [self.config["latitude"]+(pos[1]/111111), self.config["longitude"]+(pos[0]/111111)], location_name="home")
                 #self.log(f"{room} {id}: {pos}")
                 roomname = room_solve(self,round(pos[0],2,),round(pos[1],2))
-                self.mqtt.mqtt_publish(f"{self.args.get('ips_topic', 'espresense/ips')}/{id}", json.dumps({"name":name, "x":round(pos[0],2),"y":round(pos[1],2),"z":round(pos[2],2), "fixes":len(distance_to_stations),"measures":device["measures"],"currentroom":roomname}))
-                self.mqtt.mqtt_publish(f"{self.args.get('location_topic', 'espresense/location')}/{id}", json.dumps({"name":name, "longitude":(self.config["longitude"]+(pos[0]/111111)),"latitude":(self.config["latitude"]+(pos[1]/111111)),"elevation":(self.config.get("elevation","0")+pos[2]), "fixes":len(distance_to_stations),"measures":device["measures"]}))
+                self.mqtt_publish(f"{self.args.get('ips_topic', 'espresense/ips')}/{id}", json.dumps({"name":name, "x":round(pos[0],2),"y":round(pos[1],2),"z":round(pos[2],2), "fixes":len(distance_to_stations),"measures":device["measures"],"currentroom":roomname}))
+                self.mqtt_publish(f"{self.args.get('location_topic', 'espresense/location')}/{id}", json.dumps({"name":name, "longitude":(self.config["longitude"]+(pos[0]/111111)),"latitude":(self.config["latitude"]+(pos[1]/111111)),"elevation":(self.config.get("elevation","0")+pos[2]), "fixes":len(distance_to_stations),"measures":device["measures"]}))
 
 def position_solve(distances_to_station, stations_coordinates, last):
     def error(x, c, r):
